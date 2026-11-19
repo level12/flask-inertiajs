@@ -1,0 +1,13 @@
+# .coveragerc to control coverage.py
+[run]
+branch = True
+omit =
+    src/flask_inertiajs/version.py
+
+source =
+    src/flask_inertiajs
+    tests/flask_inertiajs_tests
+
+
+[html]
+directory = tmp/coverage-html

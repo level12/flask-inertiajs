@@ -1,0 +1,47 @@
+[build-system]
+requires = [
+    'hatchling',
+]
+build-backend = 'hatchling.build'
+
+
+[project]
+name = 'flask-inertiajs'
+authors = [
+    {name = 'Level 12 Developers', email = 'devteam@level12.io'},
+]
+requires-python = '>=3.12'
+dynamic = ['version']
+readme = 'readme.md'
+
+
+[project.scripts]
+'flask-inertiajs' = 'flask_inertiajs.cli:main'
+
+
+[dependency-groups]
+dev = [
+    {include-group = "pytest"},
+    {include-group = "prek"},
+    {include-group = "audit"},
+    {include-group = "nox"},
+    'click',
+    'ruff',
+]
+# Used by nox
+pytest = [
+    'pytest',
+    'pytest-cov',
+]
+# Used by nox
+prek = [
+    'prek',
+]
+# Used by nox
+audit = [
+    'pip-audit',
+]
+# Used by CI
+nox = [
+    'nox',
+]
