@@ -13,6 +13,12 @@ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20
 provenance = "github-attestations"
 
 [[tools.rumdl]]
-version = "0.3.3"
+version = "0.3.5"
 backend = "aqua:rvben/rumdl"
 specifiers = ["latest"]
+
+[tools.rumdl."platforms.linux-x64"]
+checksum = "sha256:1f7f569ce1978ec1ed21528234d01c9bd2041ed7265d2677f4d845177114f452"
+url = "https://github.com/rvben/rumdl/releases/download/v0.3.5/rumdl-v0.3.5-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/rvben/rumdl/releases/assets/764100348"
+provenance = "github-attestations"
