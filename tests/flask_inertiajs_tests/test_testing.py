@@ -61,37 +61,43 @@ class TestInertiaResponse:
     @pytest.mark.parametrize(
         ('html', 'message'),
         [
-            ('<div id="app"></div>', 'exactly one'),
-            (
+            pytest.param('<div id="app"></div>', 'exactly one', id='missing-script'),
+            pytest.param(
                 '<script data-page="app" type="application/json">{}</script>' * 2,
                 'exactly one',
+                id='duplicate-scripts',
             ),
-            ('<script data-page="app">{}</script>', 'application/json'),
-            (
+            pytest.param(
+                '<script data-page="app">{}</script>',
+                'application/json',
+                id='missing-script-type',
+            ),
+            pytest.param(
                 '<script data-page="" type="application/json">{}</script>',
                 'non-empty',
+                id='empty-root-id',
             ),
-            (
+            pytest.param(
                 '<script data-page="app" type="application/json">{}</script><div id="other"></div>',
                 'matching root div',
+                id='mismatched-root-div',
             ),
-            (
-                (
-                    '<script data-page="app" type="application/json">{}</script>'
-                    '<div id="app"></div><div id="app"></div>'
-                ),
+            pytest.param(
+                '<script data-page="app" type="application/json">{}</script>'
+                '<div id="app"></div><div id="app"></div>',
                 'matching root div',
+                id='duplicate-root-divs',
             ),
-            (
-                (
-                    '<script data-page="app" type="application/json">invalid</script>'
-                    '<div id="app"></div>'
-                ),
+            pytest.param(
+                '<script data-page="app" type="application/json">invalid</script>'
+                '<div id="app"></div>',
                 'valid JSON',
+                id='invalid-json',
             ),
-            (
+            pytest.param(
                 '<script data-page="app" type="application/json">[]</script><div id="app"></div>',
                 'page object',
+                id='non-object-page',
             ),
         ],
     )

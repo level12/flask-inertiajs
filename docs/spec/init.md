@@ -121,9 +121,12 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `VITE_MANIFE
   keys) and `flash` (only when non-empty), matching Laravel.
 - **Props**: shared props merged under page props (page wins). `errors` always present,
   `{}` by default, set from `render(errors=...)`. Models dumped with
-  `model_dump(mode='json', by_alias=True)`; dicts passed through `flask.json`.
-- **Registry**: when a component is registered, `render()` raises `TypeError` unless the
-  props are an instance of the registered model. Unregistered components are unchecked.
+  `model_dump(mode='json')`, respecting each model's alias configuration; dicts passed
+  through `flask.json`.
+- **Registry**: without a configured registry, rendering is unchecked. Once a registry is
+  configured, `render()` raises `KeyError` for missing components and `TypeError` unless
+  the props are an instance of the registered model. An explicitly empty registry rejects
+  every component; it is distinct from an unconfigured registry.
 - **`url`**: path + query of the request (Laravel rules, trailing slash preserved), unless
   `render(url=...)` overrides it.
 - **Flash**: `get_flashed_messages(with_categories=True)` →

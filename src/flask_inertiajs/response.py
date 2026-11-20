@@ -1,0 +1,81 @@
+from dataclasses import asdict, dataclass, is_dataclass
+from typing import Any
+
+from flask import Response, current_app, make_response, render_template, request
+
+from flask_inertiajs.asset_version import current_asset_version
+
+
+try:
+    from pydantic import BaseModel
+except ImportError:
+    BaseModel = None
+
+
+@dataclass
+class _InertiaPage:
+    """The final shape of the Inertia page object."""
+
+    component: str
+    props: dict
+    url: str
+    version: str
+    sharedProps: list[str]
+
+
+class InertiaPage:
+    component: str
+    props: dict
+    url: str
+
+    def __init__(
+        self,
+        component: str,
+        props: Any = None,
+        *,
+        errors: dict[str, str] | None = None,
+        url: str | None = None,
+    ):
+        self.component = component
+        self.props = {'errors': errors or {}, **self._serialize_props(props)}
+        self.url = url if url is not None else self._default_url
+
+    @staticmethod
+    def _serialize_props(props: Any) -> dict:
+        if props is None:
+            return {}
+        if isinstance(props, dict):
+            return props
+        if is_dataclass(props):
+            return asdict(props)
+        if BaseModel is not None and isinstance(props, BaseModel):
+            return props.model_dump(mode='json')
+        raise TypeError('Props must be a dict, dataclass, or Pydantic model instance')
+
+    @property
+    def _default_url(self) -> str:
+        return request.script_root + (request.full_path if request.query_string else request.path)
+
+    def render(self) -> Response:
+        page = _InertiaPage(
+            component=self.component,
+            props=self.props,
+            url=self.url,
+            version=current_asset_version(),
+            sharedProps=[],
+        )
+
+        if request.headers.get('X-Inertia'):
+            response = current_app.json.response(page)
+            response.headers['X-Inertia'] = 'true'
+        else:
+            response = make_response(
+                render_template(current_app.config['INERTIA_TEMPLATE'], page=page),
+            )
+        response.vary.add('X-Inertia')
+        return response
+
+
+def render(component: str, props: Any = None, *, url: str | None = None):
+    """Render an Inertia page as HTML or JSON, depending on the active request."""
+    return InertiaPage(component, props, url=url).render()

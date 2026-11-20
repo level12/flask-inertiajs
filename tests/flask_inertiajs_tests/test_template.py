@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from flask import render_template_string
-from flask.json.provider import DefaultJSONProvider
 import pytest
 
 
@@ -19,11 +18,16 @@ class TestInertiaRoot:
         return render
 
     def test_default_root(self, app, page, render_root):
+        page['props']['date'] = Decimal('41153.7')
         html = render_root()
 
         assert html.startswith('<script data-page="app" type="application/json">')
         assert html.endswith('</script><div id="app"></div>')
-        assert app.response_class(html).inertia_page == page
+        assert app.response_class(html).inertia_page == {
+            'component': 'Enterprise/Bridge',
+            # app's JSON config is respected
+            'props': {'captain': 'Picard', 'date': {'stardate': '41153.7'}},
+        }
 
     def test_custom_root(self, app, page, render_root):
         html = render_root("{{ inertia_root(id='bridge') }}")
@@ -49,17 +53,3 @@ class TestInertiaRoot:
         assert 'data-page="bridge&#34; onload=&#34;Q&lt;&amp;"' in html
         assert '<div id="bridge&#34; onload=&#34;Q&lt;&amp;"></div>' in html
         assert app.response_class(html).inertia_page == page
-
-    def test_uses_app_json_provider(self, app, page, render_root):
-        class StarfleetJSONProvider(DefaultJSONProvider):
-            @staticmethod
-            def default(value):
-                if isinstance(value, Decimal):
-                    return {'stardate': str(value)}
-                return DefaultJSONProvider.default(value)
-
-        app.json = StarfleetJSONProvider(app)
-        page['props']['date'] = Decimal('41153.7')
-        html = render_root()
-
-        assert app.response_class(html).inertia_props['date'] == {'stardate': '41153.7'}

@@ -447,6 +447,7 @@ dev = [
     { name = "nox" },
     { name = "pip-audit" },
     { name = "prek" },
+    { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
@@ -458,6 +459,7 @@ prek = [
     { name = "prek" },
 ]
 pytest = [
+    { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -476,6 +478,7 @@ dev = [
     { name = "nox" },
     { name = "pip-audit" },
     { name = "prek" },
+    { name = "pydantic", specifier = ">=2.11" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
@@ -483,6 +486,7 @@ dev = [
 nox = [{ name = "nox" }]
 prek = [{ name = "prek" }]
 pytest = [
+    { name = "pydantic", specifier = ">=2.11" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
