@@ -7,7 +7,7 @@ import pytest
 
 from flask_inertiajs.asset_version import current_asset_version
 
-from .helpers import BridgeProps
+from .helpers import BridgeProps, EngineeringProps
 
 
 @pytest.mark.parametrize('inertia', [False, True])
@@ -15,6 +15,10 @@ class TestRender:
     @pytest.fixture
     def render_page(self, render_resp, inertia):
         return partial(render_resp, inertia=inertia)
+
+    @pytest.fixture()
+    def registry(self, app):
+        app.extensions['inertia'].register_component_prop_types({'Enterprise/Bridge': BridgeProps})
 
     def test_page(self, render_page, inertia):
         props = {
@@ -78,7 +82,7 @@ class TestRender:
         # Rendering doesn't mutate the supplied props
         assert props == original
 
-    def test_pydantic_props(self, render_page):
+    def test_pydantic_props(self, registry, render_page):
         props = BridgeProps(
             captain_name='Picard',
             date=Decimal('41153.7'),
@@ -116,3 +120,15 @@ class TestRender:
         assert response.inertia_props == {'errors': {}}
         if not inertia:
             assert '<title>Other</title>' in response.get_data(as_text=True)
+
+    @pytest.mark.parametrize(
+        'bad_props',
+        [None, {'captain_name': 'Picard'}, EngineeringProps(chief_engineer_name='La Forge')],
+    )
+    def test_wrong_props_type(self, registry, render_page, bad_props):
+        with pytest.raises(TypeError, match='Enterprise/Bridge'):
+            render_page(bad_props)
+
+    def test_missing_component(self, registry, render_page):
+        with pytest.raises(KeyError, match='Enterprise/Engineering'):
+            render_page(BridgeProps(captain_name='La Forge'), component='Enterprise/Engineering')

@@ -36,12 +36,24 @@ class InertiaPage:
         errors: dict[str, str] | None = None,
         url: str | None = None,
     ):
+        self._check_props_type(component, props)
+
         self.component = component
         self.props = {'errors': errors or {}, **self._serialize_props(props)}
         self.url = url if url is not None else self._default_url
 
     @staticmethod
+    def _check_props_type(component: str, props: Any):
+        """If `register_component_prop_types` was used, check against it."""
+        registry = current_app.extensions['inertia'].component_prop_types
+        if registry is not None:
+            model = registry[component]
+            if not isinstance(props, model):
+                raise TypeError(f'{component} requires {model.__name__} props')
+
+    @staticmethod
     def _serialize_props(props: Any) -> dict:
+        """Convert None, a dict, a dataclass, or a Pydantic model instance to a dict."""
         if props is None:
             return {}
         if isinstance(props, dict):
@@ -54,9 +66,11 @@ class InertiaPage:
 
     @property
     def _default_url(self) -> str:
-        return request.script_root + (request.full_path if request.query_string else request.path)
+        """The current url path plus the query string"""
+        return request.root_path + (request.full_path if request.query_string else request.path)
 
     def render(self) -> Response:
+        """Render this page as HTML or JSON, depending on the active request headers."""
         page = _InertiaPage(
             component=self.component,
             props=self.props,
@@ -77,5 +91,5 @@ class InertiaPage:
 
 
 def render(component: str, props: Any = None, *, url: str | None = None):
-    """Render an Inertia page as HTML or JSON, depending on the active request."""
+    """Render an Inertia page as HTML or JSON, depending on the active request headers."""
     return InertiaPage(component, props, url=url).render()
