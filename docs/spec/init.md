@@ -90,7 +90,9 @@ def shared() -> SharedProps | dict:
 def version() -> str | None: ...
 
 
-inertia.register_pages({'Users/Create': UserCreateProps})  # optional registry
+# optional registry; like `share` and `version`, applies to every app this instance is
+# initialized on
+inertia.register_component_prop_types({'Users/Create': UserCreateProps})
 
 
 @app.route('/users/new', methods=['GET', 'POST'])
@@ -111,7 +113,7 @@ class UserEdit(InertiaView):
     props_model = UserEditProps
 ```
 
-Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `VITE_MANIFEST`
+Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PATH`
 (path; default `None`).
 
 
@@ -168,9 +170,9 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `VITE_MANIFE
 
 ### Modules
 
-- `extension.py`: `Inertia` (`init_app`, `share`, `version`, `register_pages`) plus
-  `before_request` (endpoint check, version check) and `after_request` (Vary, redirect
-  rewriting).
+- `extension.py`: `Inertia` (`init_app`, `share`, `version`,
+  `register_component_prop_types`) plus `before_request` (endpoint check, version check)
+  and `after_request` (Vary, redirect rewriting).
 - `response.py`: `render()`, `location()`, page object assembly, JSON vs HTML.
 - `views.py`: `inertia_view` decorator, `InertiaView` (MethodView with `component` and
   `props_model`), `is_inertia_endpoint()`.
@@ -186,7 +188,8 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `VITE_MANIFE
 1. **Scaffold**: `flask` dep, `pydantic` extra, test app fixture, `testing.py` helpers.
 2. **Page responses**: `render()` HTML + JSON, `inertia_root()`, `url` rules and
    override, `X-Inertia`/`Vary` headers, dict props.
-3. **Pydantic props + registry**: model serialization, `register_pages` type check.
+3. **Pydantic props + registry**: model serialization, `register_component_prop_types`
+   type check.
 4. **Shared props**: single `share` callback, merge precedence, `sharedProps`.
 5. **Views**: `@inertia_view`, `InertiaView`, 400 for unmarked endpoints.
 6. **Asset versioning**: default hash, override, 409 on mismatch.

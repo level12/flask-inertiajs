@@ -102,20 +102,14 @@ class TestInertiaResponse:
         ],
     )
     def test_invalid_html(self, html, message):
-        from flask_inertiajs.testing import InertiaResponse
-
         with pytest.raises(AssertionError, match=message):
             _ = InertiaResponse(html, mimetype='text/html').inertia_page
 
     def test_json_requires_header(self):
-        from flask_inertiajs.testing import InertiaResponse
-
         with pytest.raises(AssertionError, match='Inertia JSON response'):
             _ = InertiaResponse('{}', mimetype='application/json').inertia_page
 
     def test_props_must_be_object(self):
-        from flask_inertiajs.testing import InertiaResponse
-
         response = InertiaResponse(
             '{"props":[]}',
             mimetype='application/json',

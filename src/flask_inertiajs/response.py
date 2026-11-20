@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 from flask import Response, current_app, make_response, render_template, request
 
@@ -39,7 +40,10 @@ class InertiaPage:
         self._check_props_type(component, props)
 
         self.component = component
-        self.props = {'errors': errors or {}, **self._serialize_props(props)}
+        self.props = self._serialize_props(props).copy()
+        if 'errors' in self.props:
+            raise ValueError('Errors should be passed separately from props')
+        self.props['errors'] = errors or {}
         self.url = url if url is not None else self._default_url
 
     @staticmethod
@@ -67,7 +71,9 @@ class InertiaPage:
     @property
     def _default_url(self) -> str:
         """The current url path plus the query string"""
-        return request.root_path + (request.full_path if request.query_string else request.path)
+        path = urlsplit(request.url).path
+        query = request.query_string.decode()
+        return path + (f'?{query}' if query else '')
 
     def render(self) -> Response:
         """Render this page as HTML or JSON, depending on the active request headers."""
@@ -90,6 +96,12 @@ class InertiaPage:
         return response
 
 
-def render(component: str, props: Any = None, *, url: str | None = None):
+def render(
+    component: str,
+    props: Any = None,
+    *,
+    errors: dict[str, str] | None = None,
+    url: str | None = None,
+):
     """Render an Inertia page as HTML or JSON, depending on the active request headers."""
-    return InertiaPage(component, props, url=url).render()
+    return InertiaPage(component, props, errors=errors, url=url).render()

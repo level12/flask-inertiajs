@@ -1,6 +1,11 @@
 # Agent Guidance
 
 
+## Git
+
+- DO NOT perform git mutations. (You may use read-only git commands to gather context.)
+
+
 ## Code Style
 
 - Always add imports at the top of the file unless avoiding a circular dependency. If you

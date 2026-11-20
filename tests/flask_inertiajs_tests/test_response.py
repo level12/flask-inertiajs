@@ -28,7 +28,7 @@ class TestRender:
         }
         original = deepcopy(props)
 
-        response = render_page(props)
+        response = render_page(props, errors={'shields': 'Shields are down'})
 
         assert response.status_code == 200
         assert response.inertia_page == {
@@ -38,7 +38,7 @@ class TestRender:
                 'crew': ['Riker', 'Data'],
                 # app's JSON config is respected
                 'date': {'stardate': '41153.7'},
-                'errors': {},
+                'errors': {'shields': 'Shields are down'},
             },
             'url': '/render',
             'version': current_asset_version(),
@@ -112,6 +112,10 @@ class TestRender:
     def test_url_override(self, render_page):
         response = render_page(method='POST', url='/crew/new?ship=Enterprise')
         assert response.inertia_page['url'] == '/crew/new?ship=Enterprise'
+
+    def test_errors_in_props(self, render_page):
+        with pytest.raises(ValueError, match='Errors should be passed separately'):
+            render_page({'errors': {'shields': 'Shields are down'}})
 
     def test_template_override(self, app, render_page, inertia):
         app.config['INERTIA_TEMPLATE'] = 'other.html'
