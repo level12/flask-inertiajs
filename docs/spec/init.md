@@ -111,8 +111,8 @@ class UserEdit(InertiaView):
     props_model = UserEditProps
 ```
 
-Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (default
-`app`), `VITE_MANIFEST` (path; default `None`).
+Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `VITE_MANIFEST`
+(path; default `None`).
 
 
 ### Behavior
@@ -143,7 +143,9 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (d
   responses from Inertia endpoints.
 - **Root template**: Jinja global `inertia_root()` emits
   `<script data-page="app" type="application/json">…</script><div id="app"></div>` with
-  `<`, `>`, `&` escaped. The app owns the rest of the template (Vite tags, etc.).
+  `<`, `>`, `&` escaped. Use `inertia_root(id='bridge')` to customize both the script's
+  `data-page` and the div's `id`; the default ID is `app`. The app owns the rest of the
+  template (Vite tags, etc.).
 - **Pydantic extra** (`flask_inertiajs.pydantic`):
     - `validate(model, data, context=None) -> (model | None, errors)`: dotted `loc` keys,
       last message per field wins, messages from a translation table keyed
