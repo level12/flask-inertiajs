@@ -39,6 +39,7 @@ dev = [
 ]
 # Used by nox
 pytest = [
+    'pydantic>=2.11',
     'pytest',
     'pytest-cov',
 ]

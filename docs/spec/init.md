@@ -90,7 +90,9 @@ def shared() -> SharedProps | dict:
 def version() -> str | None: ...
 
 
-inertia.register_pages({'Users/Create': UserCreateProps})  # optional registry
+# optional registry; like `share` and `version`, applies to every app this instance is
+# initialized on
+inertia.register_component_prop_types({'Users/Create': UserCreateProps})
 
 
 @app.route('/users/new', methods=['GET', 'POST'])
@@ -111,8 +113,8 @@ class UserEdit(InertiaView):
     props_model = UserEditProps
 ```
 
-Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (default
-`app`), `VITE_MANIFEST` (path; default `None`).
+Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PATH`
+(path; default `None`).
 
 
 ### Behavior
@@ -121,9 +123,12 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (d
   keys) and `flash` (only when non-empty), matching Laravel.
 - **Props**: shared props merged under page props (page wins). `errors` always present,
   `{}` by default, set from `render(errors=...)`. Models dumped with
-  `model_dump(mode='json', by_alias=True)`; dicts passed through `flask.json`.
-- **Registry**: when a component is registered, `render()` raises `TypeError` unless the
-  props are an instance of the registered model. Unregistered components are unchecked.
+  `model_dump(mode='json')`, respecting each model's alias configuration; dicts passed
+  through `flask.json`.
+- **Registry**: without a configured registry, rendering is unchecked. Once a registry is
+  configured, `render()` raises `KeyError` for missing components and `TypeError` unless
+  the props are an instance of the registered model. An explicitly empty registry rejects
+  every component; it is distinct from an unconfigured registry.
 - **`url`**: path + query of the request (Laravel rules, trailing slash preserved), unless
   `render(url=...)` overrides it.
 - **Flash**: `get_flashed_messages(with_categories=True)` →
@@ -143,7 +148,9 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (d
   responses from Inertia endpoints.
 - **Root template**: Jinja global `inertia_root()` emits
   `<script data-page="app" type="application/json">…</script><div id="app"></div>` with
-  `<`, `>`, `&` escaped. The app owns the rest of the template (Vite tags, etc.).
+  `<`, `>`, `&` escaped. Use `inertia_root(id='bridge')` to customize both the script's
+  `data-page` and the div's `id`; the default ID is `app`. The app owns the rest of the
+  template (Vite tags, etc.).
 - **Pydantic extra** (`flask_inertiajs.pydantic`):
     - `validate(model, data, context=None) -> (model | None, errors)`: dotted `loc` keys,
       last message per field wins, messages from a translation table keyed
@@ -163,9 +170,9 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (d
 
 ### Modules
 
-- `extension.py`: `Inertia` (`init_app`, `share`, `version`, `register_pages`) plus
-  `before_request` (endpoint check, version check) and `after_request` (Vary, redirect
-  rewriting).
+- `extension.py`: `Inertia` (`init_app`, `share`, `version`,
+  `register_component_prop_types`) plus `before_request` (endpoint check, version check)
+  and `after_request` (Vary, redirect rewriting).
 - `response.py`: `render()`, `location()`, page object assembly, JSON vs HTML.
 - `views.py`: `inertia_view` decorator, `InertiaView` (MethodView with `component` and
   `props_model`), `is_inertia_endpoint()`.
@@ -181,7 +188,8 @@ Config (all `INERTIA_*`): `ROOT_TEMPLATE` (default `inertia.html`), `ROOT_ID` (d
 1. **Scaffold**: `flask` dep, `pydantic` extra, test app fixture, `testing.py` helpers.
 2. **Page responses**: `render()` HTML + JSON, `inertia_root()`, `url` rules and
    override, `X-Inertia`/`Vary` headers, dict props.
-3. **Pydantic props + registry**: model serialization, `register_pages` type check.
+3. **Pydantic props + registry**: model serialization, `register_component_prop_types`
+   type check.
 4. **Shared props**: single `share` callback, merge precedence, `sharedProps`.
 5. **Views**: `@inertia_view`, `InertiaView`, 400 for unmarked endpoints.
 6. **Asset versioning**: default hash, override, 409 on mismatch.
