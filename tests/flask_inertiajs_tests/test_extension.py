@@ -47,18 +47,15 @@ class TestInitApp:
 class TestShare:
     def test_registration(self, app):
         @app.extensions['inertia'].share
-        def shared():
-            return {'captain': 'Picard'}
+        def shared(): ...
 
         assert app.extensions['inertia'].shared_props_callback is shared
 
     def test_duplicate_registration(self, app):
         @app.extensions['inertia'].share
-        def shared():
-            return {'captain': 'Picard'}
+        def shared(): ...
 
         with pytest.raises(ValueError, match='already registered'):
 
             @app.extensions['inertia'].share
-            def other_shared():
-                return {'captain': 'Riker'}
+            def other_shared(): ...
