@@ -50,7 +50,8 @@ Explicitly out of scope:
   Generally follow internal prior art. Add a translation hook. One message per field.
 - No stacked `share` callbacks. The "blessed" path is one Pydantic model for shared props.
 - Allow a component -> props model registry that is validated at render time
-- Default manifest path defaults to None, which excludes it from hashing.
+- Default asset hashing requires an absolute `Path` to a Vite manifest. Missing or invalid
+  manifest/template paths raise errors; a custom asset version callback bypasses hashing.
 - Ship a pydantic helper lib (`validate()`, `FormModel`, `SchemaModel`) in the extra, with
   no Babel or Sentry dependencies. `SchemaModel` serializes camelCase by default; apps can
   override `model_config`.
@@ -86,11 +87,11 @@ def shared() -> SharedProps | dict:
     return SharedProps(user=..., csrf_token=generate_csrf())
 
 
-@inertia.version  # optional override of the default hash
-def version() -> str | None: ...
+@inertia.asset_version  # optional override of the default hash
+def asset_version() -> str: ...
 
 
-# optional registry; like `share` and `version`, applies to every app this instance is
+# optional registry; like `share` and `asset_version`, applies to every app this instance is
 # initialized on
 inertia.register_component_prop_types({'Users/Create': UserCreateProps})
 
@@ -114,7 +115,7 @@ class UserEdit(InertiaView):
 ```
 
 Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PATH`
-(path; default `None`).
+(absolute `pathlib.Path`; default `None`, which must be configured for default hashing).
 
 
 ### Behavior
@@ -141,9 +142,10 @@ Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PA
   external URL or an unmarked endpoint becomes 409 + `X-Inertia-Location`; a `Location`
   with a `#fragment` becomes 409 + `X-Inertia-Redirect`. `location(url)` gives 409 for
   Inertia requests and a plain redirect otherwise.
-- **Versioning**: default = sha256 of root template source + Vite manifest bytes (manifest
-  skipped when absent). GET with mismatched `X-Inertia-Version` → 409 +
-  `X-Inertia-Location` + `X-Inertia-Version`.
+- **Versioning**: default = sha256 of root template source + required Vite manifest bytes.
+  Inertia GET with missing or mismatched `X-Inertia-Version` → 409 +
+  `X-Inertia-Location` + `X-Inertia-Version`. `@inertia.asset_version` registers one
+  string-returning override; disabled versions are not supported.
 - **Response headers**: `X-Inertia: true` on JSON pages; `Vary: X-Inertia` on all
   responses from Inertia endpoints.
 - **Root template**: Jinja global `inertia_root()` emits
@@ -170,14 +172,14 @@ Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PA
 
 ### Modules
 
-- `extension.py`: `Inertia` (`init_app`, `share`, `version`,
+- `extension.py`: `Inertia` (`init_app`, `share`, `asset_version`,
   `register_component_prop_types`) plus `before_request` (endpoint check, version check)
   and `after_request` (Vary, redirect rewriting).
 - `response.py`: `render()`, `location()`, page object assembly, JSON vs HTML.
 - `views.py`: `inertia_view` decorator, `InertiaView` (MethodView with `component` and
   `props_model`), `is_inertia_endpoint()`.
 - `template.py`: `inertia_root()` and JSON escaping.
-- `assets.py`: default asset version (`version.py` is the package version).
+- `asset_version.py`: default asset version (`version.py` is the package version).
 - `pydantic.py`: the extra.
 - `testing.py`: client with `inertia=True` (sets `X-Inertia` and current version) and
   response helpers `inertia_page` / `inertia_props`.

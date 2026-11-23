@@ -20,10 +20,11 @@ class TestInertiaClient:
         assert 'X-Inertia' not in headers
         assert 'X-Inertia-Version' not in headers
 
-    def test_inertia_request(self, client):
+    def test_inertia_request(self, app, client):
         headers = client.get('/echo', inertia=True).json['headers']
         assert headers['X-Inertia'] == 'true'
-        assert headers['X-Inertia-Version'] == current_asset_version()
+        with app.app_context():
+            assert headers['X-Inertia-Version'] == current_asset_version()
 
     @pytest.mark.parametrize('headers_type', [dict, Headers, list])
     def test_headers_preserved(self, client, headers_type):

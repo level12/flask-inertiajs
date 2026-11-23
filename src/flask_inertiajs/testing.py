@@ -4,8 +4,6 @@ from flask import Response
 from flask.testing import FlaskClient
 from werkzeug.datastructures import Headers
 
-from flask_inertiajs.asset_version import current_asset_version
-
 
 class InertiaClient(FlaskClient):
     """A Flask client accepting `inertia=True` on request methods."""
@@ -14,7 +12,11 @@ class InertiaClient(FlaskClient):
         if inertia:
             headers = Headers(kwargs.get('headers'))
             headers['X-Inertia'] = 'true'
-            headers.setdefault('X-Inertia-Version', current_asset_version())
+            if 'X-Inertia-Version' not in headers:
+                with self.application.test_request_context():
+                    headers['X-Inertia-Version'] = self.application.extensions[
+                        'inertia'
+                    ].asset_version_callback()
             kwargs['headers'] = headers
         return super().open(*args, **kwargs)
 

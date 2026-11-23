@@ -38,6 +38,8 @@ class TestRender:
         original = deepcopy(props)
 
         response = render_page(props, errors={'shields': 'Shields are down'})
+        with app.app_context():
+            version = current_asset_version()
 
         assert response.status_code == 200
         assert response.inertia_page == {
@@ -52,7 +54,7 @@ class TestRender:
                 'errors': {'shields': 'Shields are down'},
             },
             'url': '/render',
-            'version': current_asset_version(),
+            'version': version,
             # Overridden keys stay in sharedProps (matches Laravel adapter)
             'sharedProps': ['captain', 'date1'],
             'flash': {

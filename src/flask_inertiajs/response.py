@@ -5,13 +5,12 @@ from urllib.parse import urlsplit
 from flask import (
     Response,
     current_app,
+    g,
     get_flashed_messages,
     make_response,
     render_template,
     request,
 )
-
-from flask_inertiajs.asset_version import current_asset_version
 
 
 try:
@@ -123,7 +122,7 @@ class InertiaPage:
             component=self.component,
             props=self.props,
             url=self.url,
-            version=current_asset_version(),
+            version=g.inertia_asset_version,
             sharedProps=self.shared_props,
         )
         if flashes := self._get_flashes():

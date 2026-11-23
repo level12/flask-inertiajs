@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from flask import Flask
 import pytest
 
@@ -62,7 +64,52 @@ class TestShare:
             def other_shared(): ...
 
 
+class TestAssetVersion:
+    def test_registration(self, app, client, render_resp):
+        asset_version = Mock(return_value='enterprise-d')
+        assert app.extensions['inertia'].asset_version(asset_version) is asset_version
+        assert render_resp(inertia=False).inertia_page['version'] == 'enterprise-d'
+        asset_version.assert_called_once_with()
+
+        asset_version.reset_mock()
+        response = client.get(
+            '/render',
+            headers={'X-Inertia': 'true', 'X-Inertia-Version': 'enterprise-d'},
+        )
+        assert response.inertia_page['version'] == 'enterprise-d'
+        asset_version.assert_called_once_with()
+
+    def test_duplicate_registration(self, app):
+        @app.extensions['inertia'].asset_version
+        def asset_version():
+            return 'enterprise-d'
+
+        with pytest.raises(ValueError, match='already registered'):
+
+            @app.extensions['inertia'].asset_version
+            def other_asset_version():
+                return 'stargazer'
+
+
 class TestBeforeRequest:
+    @pytest.mark.parametrize('version', [None, 'stargazer'])
+    def test_version_check(self, client, render_resp, version):
+        current_version = render_resp().inertia_page['version']
+        headers = {'X-Inertia': 'true'}
+        if version is not None:
+            headers['X-Inertia-Version'] = version
+
+        response = client.get('/render?captain=Picard', headers=headers)
+
+        assert response.status_code == 409
+        assert response.headers['X-Inertia-Location'] == 'http://localhost/render?captain=Picard'
+        assert response.headers['X-Inertia-Version'] == current_version
+
+        # Non-GET and non-Inertia requests are exempt.
+        assert client.post('/render', headers=headers).status_code == 200
+        headers.pop('X-Inertia')
+        assert client.get('/render', headers=headers).status_code == 200
+
     def test_rejects_unmarked_endpoints(self, app, client):
         @app.get('/bridge')
         @inertia_view

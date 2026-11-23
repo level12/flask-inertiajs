@@ -13,7 +13,7 @@ from flask_inertiajs.views import inertia_view
 # Tests and other fixtures depend on this being function-scoped. Don't make it session-scoped
 # without noting the ramifications.
 @pytest.fixture
-def app():
+def app(tmp_path):
     app = Flask(__name__)
     app.config.update(TESTING=True, SECRET_KEY='test-secret')
     app.test_client_class = InertiaClient
@@ -25,6 +25,9 @@ def app():
             'other.html': '<title>Other</title>{{ inertia_root() }}',
         },
     )
+    manifest = tmp_path / 'crew.json'
+    manifest.write_text('{"picard.ts": {"file": "assets/picard.js"}}')
+    app.config['INERTIA_VITE_MANIFEST_PATH'] = manifest
     Inertia(app)
 
     @app.post('/flash')
