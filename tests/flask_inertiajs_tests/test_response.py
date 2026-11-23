@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import partial
+from unittest.mock import Mock
 
 import pytest
 
@@ -20,11 +21,12 @@ class TestRender:
     def registry(self, app):
         app.extensions['inertia'].register_component_prop_types({'Enterprise/Bridge': BridgeProps})
 
-    def test_page(self, render_page, inertia):
+    def test_page(self, app, render_page, inertia):
+        app.extensions['inertia'].share(lambda: {'captain': 'Riker', 'date1': Decimal('45047.2')})
         props = {
             'captain': 'Picard',
             'crew': ['Riker', 'Data'],
-            'date': Decimal('41153.7'),
+            'date2': Decimal('41153.7'),
         }
         original = deepcopy(props)
 
@@ -34,15 +36,18 @@ class TestRender:
         assert response.inertia_page == {
             'component': 'Enterprise/Bridge',
             'props': {
+                # Direct props override shared props.
                 'captain': 'Picard',
                 'crew': ['Riker', 'Data'],
                 # app's JSON config is respected
-                'date': {'stardate': '41153.7'},
+                'date1': {'stardate': '45047.2'},
+                'date2': {'stardate': '41153.7'},
                 'errors': {'shields': 'Shields are down'},
             },
             'url': '/render',
             'version': current_asset_version(),
-            'sharedProps': [],
+            # Overridden keys stay in sharedProps (matches Laravel adapter)
+            'sharedProps': ['captain', 'date1'],
         }
         assert 'X-Inertia' in response.vary
         if inertia:
@@ -82,7 +87,9 @@ class TestRender:
         # Rendering doesn't mutate the supplied props
         assert props == original
 
-    def test_pydantic_props(self, registry, render_page):
+    def test_pydantic_props(self, app, registry, render_page):
+        app.extensions['inertia'].share(lambda: EngineeringProps(chief_engineer_name='La Forge'))
+
         props = BridgeProps(
             captain_name='Picard',
             date=Decimal('41153.7'),
@@ -93,11 +100,24 @@ class TestRender:
 
         assert response.inertia_props == {
             'captainName': 'Picard',
+            'chiefEngineerName': 'La Forge',
             # Pydantic controls model serialization; Flask controls dict/dataclass serialization.
             'date': '41153.7',
             'errors': {},
         }
         assert props == original
+        assert response.inertia_page['sharedProps'] == ['chiefEngineerName']
+
+    def test_fresh_shared_props(self, app, client, render_page, inertia):
+        callback = Mock(side_effect=[{'captain': 'Picard'}, {'captain': 'Riker'}])
+        app.extensions['inertia'].share(callback)
+
+        first = render_page()
+        second = client.get('/render', inertia=inertia)
+
+        assert first.inertia_props == {'captain': 'Picard', 'errors': {}}
+        assert second.inertia_props == {'captain': 'Riker', 'errors': {}}
+        assert callback.call_count == 2
 
     @pytest.mark.parametrize(
         'path',
@@ -113,15 +133,21 @@ class TestRender:
         response = render_page(method='POST', url='/crew/new?ship=Enterprise')
         assert response.inertia_page['url'] == '/crew/new?ship=Enterprise'
 
-    def test_errors_in_props(self, render_page):
+    @pytest.mark.parametrize('source', ['page', 'shared'])
+    def test_errors_in_props(self, app, render_page, source):
+        props = {'errors': {'shields': 'Shields are down'}}
+        if source == 'shared':
+            app.extensions['inertia'].share(lambda: props)
+
         with pytest.raises(ValueError, match='Errors should be passed separately'):
-            render_page({'errors': {'shields': 'Shields are down'}})
+            render_page(props if source == 'page' else None)
 
     def test_template_override(self, app, render_page, inertia):
         app.config['INERTIA_TEMPLATE'] = 'other.html'
         response = render_page()
         assert response.inertia_page['component'] == 'Enterprise/Bridge'
         assert response.inertia_props == {'errors': {}}
+        assert response.inertia_page['sharedProps'] == []
         if not inertia:
             assert '<title>Other</title>' in response.get_data(as_text=True)
 
