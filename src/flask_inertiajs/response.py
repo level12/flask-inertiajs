@@ -1,8 +1,15 @@
-from dataclasses import asdict, dataclass, is_dataclass
-from typing import Any
+from dataclasses import asdict, is_dataclass
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlsplit
 
-from flask import Response, current_app, make_response, render_template, request
+from flask import (
+    Response,
+    current_app,
+    get_flashed_messages,
+    make_response,
+    render_template,
+    request,
+)
 
 from flask_inertiajs.asset_version import current_asset_version
 
@@ -13,8 +20,16 @@ except ImportError:
     BaseModel = None
 
 
-@dataclass
-class _InertiaPage:
+class _FlashMessage(TypedDict):
+    category: str
+    message: str
+
+
+class _Flash(TypedDict):
+    messages: list[_FlashMessage]
+
+
+class _InertiaPage(TypedDict):
     """The final shape of the Inertia page object."""
 
     component: str
@@ -22,6 +37,7 @@ class _InertiaPage:
     url: str
     version: str
     sharedProps: list[str]
+    flash: NotRequired[_Flash]
 
 
 class InertiaPage:
@@ -96,6 +112,11 @@ class InertiaPage:
         query = request.query_string.decode()
         return path + (f'?{query}' if query else '')
 
+    @staticmethod
+    def _get_flashes() -> _Flash | None:
+        if messages := get_flashed_messages(with_categories=True):
+            return {'messages': [{'category': c, 'message': m} for c, m in messages]}
+
     def render(self) -> Response:
         """Render this page as HTML or JSON, depending on the active request headers."""
         page = _InertiaPage(
@@ -105,6 +126,8 @@ class InertiaPage:
             version=current_asset_version(),
             sharedProps=self.shared_props,
         )
+        if flashes := self._get_flashes():
+            page['flash'] = flashes
 
         if request.headers.get('X-Inertia'):
             response = current_app.json.response(page)

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from flask import Flask
+from flask import Flask, flash, request
 from flask.json.provider import DefaultJSONProvider
 from jinja2 import DictLoader
 import pytest
@@ -25,6 +25,13 @@ def app():
         },
     )
     Inertia(app)
+
+    @app.post('/flash')
+    def flash_view():
+        for message in request.get_json():
+            flash(**message)
+        return '', 204
+
     return app
 
 
@@ -35,6 +42,12 @@ def client(app):
 
 @pytest.fixture
 def render_resp(app, client):
+    render_options = {}
+
+    @app.route('/render', methods=['GET', 'POST'])
+    def render_view():
+        return render(**render_options)
+
     def get_response(
         props=None,
         *,
@@ -44,10 +57,8 @@ def render_resp(app, client):
         method='GET',
         **options,
     ):
-        @app.route('/render', methods=['GET', 'POST'])
-        def render_view():
-            return render(component, props, **options)
-
+        render_options.clear()
+        render_options.update(component=component, props=props, **options)
         return client.open(path, method=method, inertia=inertia)
 
     return get_response
