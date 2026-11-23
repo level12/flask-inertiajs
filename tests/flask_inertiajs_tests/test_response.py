@@ -21,7 +21,14 @@ class TestRender:
     def registry(self, app):
         app.extensions['inertia'].register_component_prop_types({'Enterprise/Bridge': BridgeProps})
 
-    def test_page(self, app, render_page, inertia):
+    def test_page(self, app, client, render_page, inertia):
+        client.post(
+            '/flash',
+            json=[
+                {'message': 'Report to battle stations.'},
+                {'message': 'Red alert!', 'category': 'error'},
+            ],
+        )
         app.extensions['inertia'].share(lambda: {'captain': 'Riker', 'date1': Decimal('45047.2')})
         props = {
             'captain': 'Picard',
@@ -48,6 +55,12 @@ class TestRender:
             'version': current_asset_version(),
             # Overridden keys stay in sharedProps (matches Laravel adapter)
             'sharedProps': ['captain', 'date1'],
+            'flash': {
+                'messages': [
+                    {'category': 'message', 'message': 'Report to battle stations.'},
+                    {'category': 'error', 'message': 'Red alert!'},
+                ],
+            },
         }
         assert 'X-Inertia' in response.vary
         if inertia:
@@ -118,6 +131,18 @@ class TestRender:
         assert first.inertia_props == {'captain': 'Picard', 'errors': {}}
         assert second.inertia_props == {'captain': 'Riker', 'errors': {}}
         assert callback.call_count == 2
+
+    def test_flash_consumption(self, client, render_page, inertia):
+        client.post('/flash', json=[{'message': 'Romulan ale', 'category': 'warning'}])
+
+        first = render_page()
+        second = client.get('/render', inertia=inertia)
+
+        assert first.inertia_page['flash'] == {
+            'messages': [{'category': 'warning', 'message': 'Romulan ale'}],
+        }
+        # The flash was consumed
+        assert 'flash' not in second.inertia_page
 
     @pytest.mark.parametrize(
         'path',
