@@ -7,6 +7,7 @@ import pytest
 
 from flask_inertiajs import Inertia, render
 from flask_inertiajs.testing import InertiaClient, InertiaResponse
+from flask_inertiajs.views import inertia_view
 
 
 # Tests and other fixtures depend on this being function-scoped. Don't make it session-scoped
@@ -45,6 +46,7 @@ def render_resp(app, client):
     render_options = {}
 
     @app.route('/render', methods=['GET', 'POST'])
+    @inertia_view
     def render_view():
         return render(**render_options)
 

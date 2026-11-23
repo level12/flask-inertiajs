@@ -136,7 +136,6 @@ class InertiaPage:
             response = make_response(
                 render_template(current_app.config['INERTIA_TEMPLATE'], page=page),
             )
-        response.vary.add('X-Inertia')
         return response
 
 
