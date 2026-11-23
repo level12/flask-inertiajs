@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from flask import Flask
+from flask import Flask, redirect
 import pytest
 
 from flask_inertiajs import Inertia
@@ -81,14 +81,12 @@ class TestAssetVersion:
 
     def test_duplicate_registration(self, app):
         @app.extensions['inertia'].asset_version
-        def asset_version():
-            return 'enterprise-d'
+        def asset_version(): ...
 
         with pytest.raises(ValueError, match='already registered'):
 
             @app.extensions['inertia'].asset_version
-            def other_asset_version():
-                return 'stargazer'
+            def other_asset_version(): ...
 
 
 class TestBeforeRequest:
@@ -142,6 +140,31 @@ class TestBeforeRequest:
 
 
 class TestAfterRequest:
+    @pytest.mark.parametrize(
+        'method,target,inertia,code,header',
+        [
+            ('GET', '/bridge', True, 302, 'Location'),
+            ('DELETE', '/bridge', True, 303, 'Location'),
+            ('POST', '/bridge', False, 302, 'Location'),
+            ('POST', '/holodeck', False, 302, 'Location'),
+            ('POST', '/holodeck', True, 409, 'X-Inertia-Location'),
+            ('POST', 'https://enterprise.example/bridge', True, 409, 'X-Inertia-Location'),
+        ],
+    )
+    def test_redirect(self, app, client, method, target, inertia, code, header):
+        @app.route('/bridge', methods=['GET', 'POST', 'DELETE'])
+        @inertia_view
+        def bridge():
+            return redirect(target)
+
+        @app.get('/holodeck')
+        def holodeck(): ...
+
+        response = client.open('/bridge', method=method, inertia=inertia)
+
+        assert response.status_code == code
+        assert response.headers[header] == target
+
     @pytest.mark.parametrize('inertia', [False, True])
     def test_vary(self, app, client, inertia):
         @app.get('/bridge')
@@ -161,5 +184,5 @@ class TestAfterRequest:
         # Not added for non-inertia views.
         assert set(client.get('/holodeck').vary) == {'Accept-Language'}
 
-        # 404s are handled gracefully
-        assert 'X-Inertia' not in client.get('/missing', inertia=inertia).vary
+    def test_graceful_404(self, client):
+        assert client.get('/missing', inertia=True).status_code == 404

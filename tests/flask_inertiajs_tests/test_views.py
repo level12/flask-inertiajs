@@ -1,7 +1,7 @@
 from flask.views import MethodView
 import pytest
 
-from flask_inertiajs.views import InertiaView, inertia_view, is_inertia_endpoint
+from flask_inertiajs.views import InertiaView, inertia_view, is_inertia_endpoint, is_inertia_url
 
 from .helpers import BridgeProps
 
@@ -35,6 +35,31 @@ class TestIsInertiaEndpoint:
             assert not is_inertia_endpoint('missing')
             assert not is_inertia_endpoint('holodeck')
             assert not is_inertia_endpoint('sickbay')
+
+
+class TestIsInertiaUrl:
+    @pytest.mark.parametrize(
+        'url,supported',
+        [
+            ('/bridge', True),
+            ('bridge', True),
+            ('http://localhost/bridge', True),
+            ('https://enterprise.example/bridge', False),
+            ('/holodeck', False),
+            ('/missing', False),
+        ],
+    )
+    def test_supported(self, app, url, supported):
+        @app.get('/bridge')
+        @inertia_view
+        def bridge(): ...
+
+        @app.get('/holodeck')
+        def holodeck(): ...
+
+        # The method on the request should be ignored because the redirect will be a GET.
+        with app.test_request_context(method='POST'):
+            assert is_inertia_url(url) is supported
 
 
 class TestInertiaView:

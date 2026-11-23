@@ -5,7 +5,10 @@ from flask import Flask, Response, abort, g, request
 
 from flask_inertiajs.asset_version import current_asset_version
 from flask_inertiajs.template import inertia_root
-from flask_inertiajs.views import is_inertia_endpoint
+from flask_inertiajs.views import is_inertia_endpoint, is_inertia_url
+
+
+REDIRECT_TO_GET_METHODS = frozenset(('PUT', 'PATCH', 'DELETE', 'QUERY'))
 
 
 class Inertia:
@@ -27,13 +30,17 @@ class Inertia:
         app.after_request(self._after_request)
 
     def _before_request(self):
+        # Exit early for routing exceptions.
         if request.routing_exception is not None:
             return
+
+        # Request is not to an Inertia endpoint. Fail if Inertia endpoint expected, else continue.
         if not is_inertia_endpoint(request.endpoint):
             if request.headers.get('X-Inertia'):
                 abort(400, description='This endpoint does not support Inertia requests.')
             return
 
+        # If there's a new asset version, convert to a full-page load.
         g.inertia_asset_version = self.asset_version_callback()
         if (
             request.headers.get('X-Inertia')
@@ -50,9 +57,21 @@ class Inertia:
 
     @staticmethod
     def _after_request(response: Response) -> Response:
-        if request.endpoint is not None and is_inertia_endpoint(request.endpoint):
-            # Tell the browser to keep the HTML and JSON responses apart.
-            response.vary.add('X-Inertia')
+        # Exit early for routing exceptions and non-Inertia endpoints.
+        if request.routing_exception is not None or not is_inertia_endpoint(request.endpoint):
+            return response
+
+        # Tell the browser to keep the HTML and JSON responses apart.
+        response.vary.add('X-Inertia')
+
+        if request.headers.get('X-Inertia') and response.status_code == 302 and response.location:
+            # Redirect points outside the Inertia app, so convert to a full-page load.
+            if not is_inertia_url(response.location):
+                response.headers['X-Inertia-Location'] = response.location
+                response.status_code = 409
+            # Tell Inertia to convert these methods to GET on the redirect.
+            elif request.method in REDIRECT_TO_GET_METHODS:
+                response.status_code = 303
         return response
 
     def register_component_prop_types(self, components_prop_types: dict[str, type]):
