@@ -4,12 +4,14 @@ from werkzeug.datastructures import Headers
 
 from flask_inertiajs.asset_version import current_asset_version
 from flask_inertiajs.testing import InertiaResponse
+from flask_inertiajs.views import inertia_view
 
 
 class TestInertiaClient:
     @pytest.fixture(autouse=True)
     def echo(self, app):
         @app.route('/echo', methods=['GET', 'POST'])
+        @inertia_view
         def echo():
             return jsonify(headers=dict(request.headers), data=request.get_json(silent=True))
 
