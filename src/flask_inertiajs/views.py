@@ -1,7 +1,9 @@
 from collections.abc import Callable
+from urllib.parse import urljoin, urlsplit
 
-from flask import Response, current_app
+from flask import Response, current_app, request
 from flask.views import MethodView
+from werkzeug.exceptions import HTTPException
 
 from flask_inertiajs.response import render
 
@@ -41,3 +43,16 @@ def is_inertia_endpoint(endpoint: str) -> bool:
         return True
     view_class = getattr(view, 'view_class', None)
     return isinstance(view_class, type) and issubclass(view_class, InertiaView)
+
+
+def is_inertia_url(url: str) -> bool:
+    """Converts the given url to an endpoint and returns the result of `is_inertia_endpoint`."""
+    target = urlsplit(urljoin(request.url, url))
+    origin = urlsplit(request.url)
+    if (target.scheme, target.netloc) != (origin.scheme, origin.netloc):
+        return False
+    try:
+        endpoint, _ = current_app.create_url_adapter(request).match(target.path, method='GET')
+    except HTTPException:
+        return False
+    return is_inertia_endpoint(endpoint)
