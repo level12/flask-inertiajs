@@ -40,10 +40,7 @@ class InertiaPage:
         self._check_props_type(component, props)
 
         self.component = component
-        self.props = self._serialize_props(props).copy()
-        if 'errors' in self.props:
-            raise ValueError('Errors should be passed separately from props')
-        self.props['errors'] = errors or {}
+        self.props, self.shared_props = self._all_props(props, errors)
         self.url = url if url is not None else self._default_url
 
     @staticmethod
@@ -54,6 +51,30 @@ class InertiaPage:
             model = registry[component]
             if not isinstance(props, model):
                 raise TypeError(f'{component} requires {model.__name__} props')
+
+    @staticmethod
+    def _all_props(page_props: Any, errors: dict[str, str] | None) -> tuple[dict, list[str]]:
+        """Given page-specific props and render-specific errors, returns a tuple of serialized
+        `props`, `sharedProps`."""
+
+        # Get and serialize shared props
+        shared_props_callback = current_app.extensions['inertia'].shared_props_callback
+        shared_props = (
+            InertiaPage._serialize_props(shared_props_callback()) if shared_props_callback else {}
+        )
+
+        # Combine and serialize page props
+        props = {
+            **shared_props,
+            **InertiaPage._serialize_props(page_props),
+        }
+
+        # Add errors
+        if 'errors' in props:
+            raise ValueError('Errors should be passed separately from props')
+        props['errors'] = errors or {}
+
+        return props, list(shared_props.keys())
 
     @staticmethod
     def _serialize_props(props: Any) -> dict:
@@ -82,7 +103,7 @@ class InertiaPage:
             props=self.props,
             url=self.url,
             version=current_asset_version(),
-            sharedProps=[],
+            sharedProps=self.shared_props,
         )
 
         if request.headers.get('X-Inertia'):
