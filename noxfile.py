@@ -38,6 +38,31 @@ def audit(session: nox.Session):
     )
 
 
+@nox.session
+def build(session: nox.Session):
+    output_dir = Path(environ['FLASK_INERTIAJS_DIST_DIR'])
+    uv_sync(session)
+    session.run('python', '-m', 'build', '--outdir', output_dir)
+    session.run('twine', 'check', *output_dir.glob('*'))
+    (wheel_path,) = output_dir.glob('*.whl')
+    session.run(
+        'uv',
+        'pip',
+        'install',
+        '--python',
+        session.virtualenv.location,
+        '--reinstall',
+        '--no-deps',
+        wheel_path,
+    )
+    session.run(
+        'python',
+        '-c',
+        'import flask_inertiajs; '
+        'print(f"Imported installed wheel from {flask_inertiajs.__file__}")',
+    )
+
+
 def pytest_run(session: nox.Session, *args, **env):
     """
     Using functions for pytest and uv enables more advanced uses cases.  Examples:

@@ -1,0 +1,45 @@
+name: PyPI publish
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/pypi.yaml'
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  build:
+    name: Build and validate distributions
+    runs-on: ubuntu-latest
+    env:
+      FLASK_INERTIAJS_DIST_DIR: dist
+    permissions:
+      contents: read
+    steps:
+      - uses: level12/coppy/gh-actions/nox-run@main
+        with:
+          nox-session: build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: ${{ env.FLASK_INERTIAJS_DIST_DIR }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish distributions to PyPI
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-publish
+      url: https://pypi.org/p/flask-inertiajs
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-dists
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
