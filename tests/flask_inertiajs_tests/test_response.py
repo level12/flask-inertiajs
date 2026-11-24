@@ -17,9 +17,9 @@ class TestRender:
     def render_page(self, render_resp, inertia):
         return partial(render_resp, inertia=inertia)
 
-    @pytest.fixture()
+    @pytest.fixture
     def registry(self, app):
-        app.extensions['inertia'].register_component_prop_types({'Enterprise/Bridge': BridgeProps})
+        app.extensions['inertia'].component_prop_types = {'Enterprise/Bridge': BridgeProps}
 
     def test_page(self, app, client, render_page, inertia):
         client.post(

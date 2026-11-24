@@ -14,8 +14,15 @@ REDIRECT_TO_GET_METHODS = frozenset(('PUT', 'PATCH', 'DELETE', 'QUERY'))
 class Inertia:
     """Configure Inertia for a Flask application."""
 
-    def __init__(self, app: Flask | None = None):
-        self.component_prop_types: dict[str, type] | None = None
+    def __init__(
+        self,
+        app: Flask | None = None,
+        *,
+        component_prop_types: dict[str, type] | None = None,
+    ):
+        self.component_prop_types = (
+            component_prop_types.copy() if component_prop_types is not None else None
+        )
         self.shared_props_callback: Callable[[], Any] | None = None
         self.asset_version_callback: Callable[[], str] = current_asset_version
         if app is not None:
@@ -73,9 +80,6 @@ class Inertia:
             elif request.method in REDIRECT_TO_GET_METHODS:
                 response.status_code = 303
         return response
-
-    def register_component_prop_types(self, components_prop_types: dict[str, type]):
-        self.component_prop_types = components_prop_types.copy()
 
     def share[F: Callable[[], Any]](self, callback: F) -> F:
         if self.shared_props_callback is not None:

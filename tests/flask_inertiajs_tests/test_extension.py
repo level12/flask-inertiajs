@@ -19,8 +19,8 @@ class TestInitApp:
         if request.param == 'constructor':
             return Inertia
 
-        def initialize(app):
-            inertia = Inertia()
+        def initialize(app, **kwargs):
+            inertia = Inertia(**kwargs)
             inertia.init_app(app)
             return inertia
 
@@ -30,19 +30,23 @@ class TestInitApp:
         inertia = init_method(app)
 
         assert app.extensions['inertia'] is inertia
+        assert inertia.component_prop_types is None
         assert app.config['INERTIA_TEMPLATE'] == 'inertia.html'
         assert app.config['INERTIA_VITE_MANIFEST_PATH'] is None
         assert app.jinja_env.globals['inertia_root'] is inertia_root
 
-    def test_overrides(self, app, init_method):
+    @pytest.mark.parametrize('component_prop_types', [{}, {'Enterprise/Bridge': dict}])
+    def test_overrides(self, app, init_method, component_prop_types):
         app.config.update(
             INERTIA_TEMPLATE='enterprise.html',
             INERTIA_VITE_MANIFEST_PATH='crew/manifest.json',
         )
 
-        inertia = init_method(app)
+        inertia = init_method(app, component_prop_types=component_prop_types)
 
         assert app.extensions['inertia'] is inertia
+        assert inertia.component_prop_types == component_prop_types
+        assert inertia.component_prop_types is not component_prop_types
         assert app.config['INERTIA_TEMPLATE'] == 'enterprise.html'
         assert app.config['INERTIA_VITE_MANIFEST_PATH'] == 'crew/manifest.json'
 
