@@ -1,6 +1,7 @@
 # flask-inertiajs
 
 [![nox](https://github.com/level12/flask-inertiajs/actions/workflows/nox.yaml/badge.svg)](https://github.com/level12/flask-inertiajs/actions/workflows/nox.yaml)
+[![codecov](https://codecov.io/gh/level12/flask-inertiajs/graph/badge.svg?token=xTfKjUGB3O)](https://codecov.io/gh/level12/flask-inertiajs)
 
 
 ## Dev
