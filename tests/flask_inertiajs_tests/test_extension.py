@@ -70,18 +70,16 @@ class TestShare:
 
 class TestAssetVersion:
     def test_registration(self, app, client, render_resp):
-        asset_version = Mock(return_value='enterprise-d')
+        asset_version = Mock(side_effect=['stargazer', 'enterprise-d'])
         assert app.extensions['inertia'].asset_version(asset_version) is asset_version
-        assert render_resp(inertia=False).inertia_page['version'] == 'enterprise-d'
-        asset_version.assert_called_once_with()
+        asset_version.assert_not_called()
 
-        asset_version.reset_mock()
-        response = client.get(
-            '/render',
-            headers={'X-Inertia': 'true', 'X-Inertia-Version': 'enterprise-d'},
-        )
-        assert response.inertia_page['version'] == 'enterprise-d'
-        asset_version.assert_called_once_with()
+        # Asset version is cached
+        assert render_resp(inertia=False).inertia_page['version'] == 'stargazer'
+        assert render_resp(inertia=True).inertia_page['version'] == 'stargazer'
+        # Unless auto_reload is enabled
+        app.jinja_env.auto_reload = True
+        assert render_resp(inertia=False).inertia_page['version'] == 'enterprise-d'
 
     def test_duplicate_registration(self, app):
         @app.extensions['inertia'].asset_version

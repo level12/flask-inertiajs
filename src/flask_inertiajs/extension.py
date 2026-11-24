@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from flask import Flask, Response, abort, g, request
+from flask import Flask, Response, abort, current_app, g, request
 
 from flask_inertiajs.asset_version import current_asset_version
 from flask_inertiajs.template import inertia_root
@@ -24,7 +24,8 @@ class Inertia:
             component_prop_types.copy() if component_prop_types is not None else None
         )
         self.shared_props_callback: Callable[[], Any] | None = None
-        self.asset_version_callback: Callable[[], str] = current_asset_version
+        self._asset_version_callback: Callable[[], str] = current_asset_version
+        self._cached_asset_version: str | None = None
         if app is not None:
             self.init_app(app)
 
@@ -35,6 +36,12 @@ class Inertia:
         app.extensions['inertia'] = self
         app.before_request(self._before_request)
         app.after_request(self._after_request)
+
+    @property
+    def active_asset_version(self) -> str:
+        if self._cached_asset_version is None or current_app.jinja_env.auto_reload:
+            self._cached_asset_version = self._asset_version_callback()
+        return self._cached_asset_version
 
     def _before_request(self):
         # Exit early for routing exceptions.
@@ -48,7 +55,7 @@ class Inertia:
             return
 
         # If there's a new asset version, convert to a full-page load.
-        g.inertia_asset_version = self.asset_version_callback()
+        g.inertia_asset_version = self.active_asset_version
         if (
             request.headers.get('X-Inertia')
             and request.method == 'GET'
@@ -88,7 +95,8 @@ class Inertia:
         return callback
 
     def asset_version[F: Callable[[], str]](self, callback: F) -> F:
-        if self.asset_version_callback is not current_asset_version:
+        if self._asset_version_callback is not current_asset_version:
             raise ValueError('An asset version callback is already registered')
-        self.asset_version_callback = callback
+        self._asset_version_callback = callback
+        self._cached_asset_version = None
         return callback

@@ -16,7 +16,7 @@ class InertiaClient(FlaskClient):
                 with self.application.test_request_context():
                     headers['X-Inertia-Version'] = self.application.extensions[
                         'inertia'
-                    ].asset_version_callback()
+                    ].active_asset_version
             kwargs['headers'] = headers
         return super().open(*args, **kwargs)
 
