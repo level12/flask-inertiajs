@@ -51,6 +51,11 @@ prek = [
 audit = [
     'pip-audit',
 ]
+# Used by nox
+build = [
+    'build',
+    'twine',
+]
 # Used by CI
 nox = [
     'nox',
