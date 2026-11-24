@@ -6,13 +6,40 @@ Originates from https://github.com/level12/coppy
 Consider updating the source file in that repo with enhancements or bug fixes needed.
 """
 
+from collections.abc import Iterable
 import datetime as dt
+from os import environ
 from pathlib import Path
 import re
+import subprocess
 
 import click
 
-from flask_inertiajs.utils import sub_run
+
+def sub_run(
+    *args,
+    capture=False,
+    returns: Iterable[int] | None = None,
+    **kwargs,
+) -> subprocess.CompletedProcess:
+    kwargs.setdefault('check', not bool(returns))
+    capture = kwargs.setdefault('capture_output', capture)
+    args = args + kwargs.pop('args', ())
+    env = kwargs.pop('env', None)
+    if env:
+        kwargs['env'] = environ | env
+    if capture:
+        kwargs.setdefault('text', True)
+
+    try:
+        result = subprocess.run(args, **kwargs)
+        if returns and result.returncode not in returns:
+            raise subprocess.CalledProcessError(result.returncode, args[0])
+        return result
+    except subprocess.CalledProcessError as e:
+        if capture:
+            print(e.stderr)
+        raise
 
 
 VERSION_FPATH = Path(__file__).resolve().parents[1] / 'src' / 'flask_inertiajs' / 'version.py'
