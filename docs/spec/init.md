@@ -52,8 +52,8 @@ Explicitly out of scope:
 - Allow a component -> props model registry that is validated at render time
 - Default asset hashing requires an absolute `Path` to a Vite manifest. Missing or invalid
   manifest/template paths raise errors; a custom asset version callback bypasses hashing.
-- Ship a pydantic helper lib (`validate()`, `FormModel`, `SchemaModel`) in the extra, with
-  no Babel or Sentry dependencies. `SchemaModel` serializes camelCase by default; apps can
+- Ship a pydantic helper lib (`validate()`, `FormModel`, `PropsModel`) in the extra, with
+  no Babel or Sentry dependencies. `PropsModel` serializes camelCase by default; apps can
   override `model_config`.
 
 
@@ -160,7 +160,7 @@ Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PA
     - Translation hook: apps replace or extend the table (default English messages, no
       Babel). Untranslated error types fall back to Pydantic's message and call an
       `on_untranslated` hook (default: `logging` warning; apps can plug in Sentry, etc.).
-    - `SchemaModel`: props base with camelCase aliases, `serialize_by_alias`,
+    - `PropsModel`: props base with camelCase aliases, `serialize_by_alias`,
       `validate_by_name`, `extra='forbid'`.
     - `FormModel`: input base with `str_strip_whitespace`.
     - `InertiaErrors = dict[str, str]`.
@@ -197,6 +197,6 @@ Config (all `INERTIA_*`): `TEMPLATE` (default `inertia.html`), `VITE_MANIFEST_PA
 6. **Asset versioning**: default hash, override, 409 on mismatch.
 7. **Redirects**: 303 rewrite, 409 for non-Inertia targets, fragments, `location()`.
 8. **Validation errors**: `render(errors=...)`, `validate()`, translation and untranslated
-   hooks, `SchemaModel`/`FormModel`.
+   hooks, `PropsModel`/`FormModel`.
 9. **Flash**: Flask flashes → `page.flash`.
 10. **Docs/readme**: minimal Flask + Vite + Inertia client setup, CSRF-via-props example.

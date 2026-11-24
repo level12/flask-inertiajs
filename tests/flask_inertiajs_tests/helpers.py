@@ -2,15 +2,15 @@ from decimal import Decimal
 
 from pydantic import Field, ValidationInfo, field_validator
 
-from flask_inertiajs.pydantic import FormModel, SchemaModel
+from flask_inertiajs.pydantic import FormModel, PropsModel
 
 
-class BridgeProps(SchemaModel):
+class BridgeProps(PropsModel):
     captain_name: str
     date: Decimal = Decimal('41153.7')
 
 
-class EngineeringProps(SchemaModel):
+class EngineeringProps(PropsModel):
     chief_engineer_name: str
 
 
