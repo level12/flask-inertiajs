@@ -11,6 +11,9 @@ the same day.
 ## [Unreleased]
 
 
+## [0.20261125.1] - 2026-11-25
+
+
 ### Added
 
 - Handle 301, 303, 307, and 308 redirects to external URLs and non-Inertia endpoints
@@ -27,5 +30,6 @@ the same day.
 - Initial release of the Inertia v3 adapter for Flask, including Pydantic support,
   shared props, validation errors, flash messages, redirects, and asset versioning.
 
-[Unreleased]: https://github.com/level12/flask-inertiajs/compare/v0.20261124.1...HEAD
+[Unreleased]: https://github.com/level12/flask-inertiajs/compare/v0.20261125.1...HEAD
+[0.20261125.1]: https://github.com/level12/flask-inertiajs/compare/v0.20261124.1...v0.20261125.1
 [0.20261124.1]: https://github.com/level12/flask-inertiajs/releases/tag/v0.20261124.1
