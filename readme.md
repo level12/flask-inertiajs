@@ -3,6 +3,7 @@
 [![nox](https://github.com/level12/flask-inertiajs/actions/workflows/nox.yaml/badge.svg)](https://github.com/level12/flask-inertiajs/actions/workflows/nox.yaml)
 [![codecov](https://codecov.io/gh/level12/flask-inertiajs/graph/badge.svg?token=xTfKjUGB3O)](https://codecov.io/gh/level12/flask-inertiajs)
 [![PyPI](https://img.shields.io/pypi/v/flask-inertiajs)](https://pypi.org/project/flask-inertiajs/)
+[![CalVer](https://img.shields.io/badge/calver-MAJOR.YYYYMMDD.SEQUENCE-blue)](https://calver.org/)
 
 [Inertia](https://inertiajs.com/docs/) v3 adapter for Flask with first-class Pydantic
 support.
