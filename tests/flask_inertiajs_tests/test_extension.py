@@ -143,28 +143,74 @@ class TestBeforeRequest:
 
 class TestAfterRequest:
     @pytest.mark.parametrize(
-        'method,target,inertia,code,header',
+        'method,target,inertia,source_code,expected_code,header',
         [
-            ('GET', '/bridge', True, 302, 'Location'),
-            ('DELETE', '/bridge', True, 303, 'Location'),
-            ('POST', '/bridge', False, 302, 'Location'),
-            ('POST', '/holodeck', False, 302, 'Location'),
-            ('POST', '/holodeck', True, 409, 'X-Inertia-Location'),
-            ('POST', 'https://enterprise.example/bridge', True, 409, 'X-Inertia-Location'),
+            pytest.param('GET', '/bridge', True, 302, 302, 'Location', id='internal-get'),
+            pytest.param('DELETE', '/bridge', True, 302, 303, 'Location', id='internal-delete'),
+            pytest.param('DELETE', '/bridge', True, 301, 303, 'Location', id='internal-delete-301'),
+            pytest.param('DELETE', '/bridge', True, 307, 307, 'Location', id='internal-delete-307'),
+            pytest.param('DELETE', '/bridge', False, 302, 302, 'Location', id='plain-internal'),
+            pytest.param('POST', '/holodeck', False, 302, 302, 'Location', id='plain-other'),
+            pytest.param(
+                'POST',
+                '/holodeck',
+                True,
+                302,
+                409,
+                'X-Inertia-Location',
+                id='non-inertia-dest',
+            ),
+            pytest.param(
+                'POST',
+                '/holodeck',
+                True,
+                301,
+                409,
+                'X-Inertia-Location',
+                id='non-inertia-dest-301',
+            ),
+            pytest.param(
+                'POST',
+                '/holodeck',
+                True,
+                308,
+                409,
+                'X-Inertia-Location',
+                id='non-inertia-dest-308',
+            ),
+            pytest.param(
+                'POST',
+                'https://enterprise.example/bridge',
+                True,
+                303,
+                409,
+                'X-Inertia-Location',
+                id='external-dest-303',
+            ),
         ],
     )
-    def test_redirect(self, app, client, method, target, inertia, code, header):
+    def test_redirect(
+        self,
+        app,
+        client,
+        method,
+        target,
+        inertia,
+        source_code,
+        expected_code,
+        header,
+    ):
         @app.route('/bridge', methods=['GET', 'POST', 'DELETE'])
         @inertia_view
         def bridge():
-            return redirect(target)
+            return redirect(target, code=source_code)
 
         @app.get('/holodeck')
         def holodeck(): ...
 
         response = client.open('/bridge', method=method, inertia=inertia)
 
-        assert response.status_code == code
+        assert response.status_code == expected_code
         assert response.headers[header] == target
 
     @pytest.mark.parametrize('inertia', [False, True])

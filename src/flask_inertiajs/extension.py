@@ -78,13 +78,15 @@ class Inertia:
         # Tell the browser to keep the HTML and JSON responses apart.
         response.vary.add('X-Inertia')
 
-        if request.headers.get('X-Inertia') and response.status_code == 302 and response.location:
+        is_redirect = response.status_code in {301, 302, 303, 307, 308} and response.location
+        if request.headers.get('X-Inertia') and is_redirect:
             # Redirect points outside the Inertia app, so convert to a full-page load.
             if not is_inertia_url(response.location):
                 response.headers['X-Inertia-Location'] = response.location
                 response.status_code = 409
-            # Tell Inertia to convert these methods to GET on the redirect.
-            elif request.method in REDIRECT_TO_GET_METHODS:
+            # Use a 303 to tell Inertia to convert these methods to GET on the redirect. Otherwise,
+            # Inertia would try to repeat the initial method against the new location.
+            elif request.method in REDIRECT_TO_GET_METHODS and response.status_code in {301, 302}:
                 response.status_code = 303
         return response
 
